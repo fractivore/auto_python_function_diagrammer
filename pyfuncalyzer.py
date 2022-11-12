@@ -40,7 +40,7 @@ def create_img(text,color):
     font = ImageFont.truetype("Gidole-Regular.ttf", fontsize)
     lines = []
     #look-behind regex splits at any of [_,.-/] preceded by 7 or more alphanumeric characters
-    wrapped = re.split(r'(?<=[a-zA-Z0-9_,.-/]{7}[_,.-/])', text)
+    wrapped = re.split(r'(?<=[a-zA-Z0-9_,.-/]{7}[_,.-/ ])', text)
     #print(f"wrapped:{wrapped}")
     ind = max_len = ind_o_max = 0
     for word in wrapped:
@@ -62,6 +62,19 @@ def create_img(text,color):
         y += fontsize +5  
 
     return img
+
+def make_node_with_img(text,mod_label_on=False):
+    """ Returns Custom node for mingrammer, first creating a source image for it based on the text. """
+    if mod_label_on:
+        name_label = text
+    else:
+        name_label = ""
+    color = encode_text_as_RGB_simple(text)
+    img = create_img(text,color)
+    saved_img=f"./tmp_resources/{text}.png"
+    img.save(saved_img)
+    return Custom(name_label, saved_img)
+
 def main():
     #create tmp directory
     if not os.path.exists("tmp_resources") or not os.path.isdir("tmp_resources"):
@@ -193,72 +206,86 @@ def main():
     diagram_path = f"./generated_diagrams/{filename_out}"
     if not os.path.exists(folder_path) or not os.path.isdir(folder_path):
         os.mkdir(folder_path)
-    with Diagram(f"{filename_in} Function Diagram", show=False, filename=filename_out, direction="LR", graph_attr=graph_attributes):
+    with Diagram(f"{filename_in} Function Diagram", show=False, filename=filename_out, direction="TB", graph_attr=graph_attributes):
         nodes_by_name = dict()
         with Cluster(f"{filename_in} Classes"):
             nodes_by_name['classes'] = dict()
+            nodes_by_name['classes']['MODNODE'] = make_node_with_img(f"{filename_in} Classes")
             for mod in class_dict:
                 nodes_by_name['classes'][mod] = dict()
                 with Cluster(mod):
                     nodes_by_name['classes'][mod]['calls']=dict()
-                    for name in class_dict[mod]['calls']['native']:
-                        if NODE_LABELS_ON:
-                            name_label = name
-                        else:
-                            name_label = ""
-                        color = encode_text_as_RGB_simple(name)
-                        img = create_img(name,color)
-                        saved_img=f"./tmp_resources/{name}.png"
-                        img.save(saved_img)
-                        nodes_by_name['classes'][mod]['calls']['native'][name] = Custom(name_label, saved_img)
-                    for name in class_dict[mod]['calls']['imports']:
-                        if NODE_LABELS_ON:
-                            name_label = name
-                        else:
-                            name_label = ""
-                        color = encode_text_as_RGB_simple(name)
-                        img = create_img(name,color)
-                        saved_img=f"./tmp_resources/{name}.png"
-                        img.save(saved_img)
-                        nodes_by_name['classes'][mod]['calls']['imports'][name] = Custom(name_label, saved_img)
+                    nodes_by_name['classes'][mod]['MODNODE'] = make_node_with_img(mod)
+                    with Cluster("In file"):
+                        for name in class_dict[mod]['calls']['native']:
+                            if NODE_LABELS_ON:
+                                name_label = name
+                            else:
+                                name_label = ""
+                            color = encode_text_as_RGB_simple(name)
+                            img = create_img(name,color)
+                            saved_img=f"./tmp_resources/{name}.png"
+                            img.save(saved_img)
+                            nodes_by_name['classes'][mod]['calls']['native'][name] = Custom(name_label, saved_img)
+                    with Cluster("Imports"):
+                        for name in class_dict[mod]['calls']['imports']:
+                            if NODE_LABELS_ON:
+                                name_label = name
+                            else:
+                                name_label = ""
+                            color = encode_text_as_RGB_simple(name)
+                            img = create_img(name,color)
+                            saved_img=f"./tmp_resources/{name}.png"
+                            img.save(saved_img)
+                            nodes_by_name['classes'][mod]['calls']['imports'][name] = Custom(name_label, saved_img)
                     with Cluster("Methods"):
                         nodes_by_name['classes'][mod]['definitions']=dict()
                         for name in class_dict[mod]['definitions']:
                             nodes_by_name['classes'][mod]['definitions'][name]={'native':{},'imports':{}}
+                            color = encode_text_as_RGB_simple(name)
+                            img = create_img(name,color)
+                            saved_img=f"./tmp_resources/{name}.png"
+                            img.save(saved_img)
                             with Cluster(name):
-                                for subname in class_dict[mod]['definitions'][name]['native']:
-                                    if NODE_LABELS_ON:
-                                        name_label = subname
-                                    else:
-                                        name_label = ""
-                                    color = encode_text_as_RGB_simple(name)
-                                    img = create_img(name,color)
-                                    saved_img=f"./tmp_resources/{subname}.png"
-                                    img.save(saved_img)
-                                    nodes_by_name['classes'][mod]['definitions'][name]['native'][subname] = Custom(name_label, saved_img)
-                                nodes_by_name['classes'][mod]['definitions'][name]['imports']=dict()
-                                for subname in class_dict[mod]['definitions'][name]['imports']:
-                                    if NODE_LABELS_ON:
-                                        name_label = subname
-                                    else:
-                                        name_label = ""
-                                    color = encode_text_as_RGB_simple(name)
-                                    img = create_img(name,color)
-                                    saved_img=f"./tmp_resources/{subname}.png"
-                                    img.save(saved_img)
-                                    nodes_by_name['classes'][mod]['definitions'][name]['imports'][subname] = Custom(name_label, saved_img)
+                                nodes_by_name['classes'][mod]['definitions'][name]['MODNODE'] = Custom("", saved_img)
+                                with Cluster("In file"):
+                                    for subname in class_dict[mod]['definitions'][name]['native']:
+                                        if NODE_LABELS_ON:
+                                            name_label = subname
+                                        else:
+                                            name_label = ""
+                                        color = encode_text_as_RGB_simple(name)
+                                        img = create_img(name,color)
+                                        saved_img=f"./tmp_resources/{subname}.png"
+                                        img.save(saved_img)
+                                        nodes_by_name['classes'][mod]['definitions'][name]['native'][subname] = Custom(name_label, saved_img)
+                                with Cluster("Imports"):
+                                    nodes_by_name['classes'][mod]['definitions'][name]['imports']=dict()
+                                    for subname in class_dict[mod]['definitions'][name]['imports']:
+                                        if NODE_LABELS_ON:
+                                            name_label = subname
+                                        else:
+                                            name_label = ""
+                                        color = encode_text_as_RGB_simple(name)
+                                        img = create_img(name,color)
+                                        saved_img=f"./tmp_resources/{subname}.png"
+                                        img.save(saved_img)
+                                        nodes_by_name['classes'][mod]['definitions'][name]['imports'][subname] = Custom(name_label, saved_img)
 
         with Cluster(f"{filename_in} Imports"):
             nodes_by_name['imports'] = dict()
+            nodes_by_name['imports']['MODNODE'] = make_node_with_img(f"{filename_in} Imports")
             for mod in imp_dict:
                 nodes_by_name['imports'][mod] = dict()
                 with Cluster(mod):
-                    for name in imp_dict[mod]:
-                        color = encode_text_as_RGB_simple(name)
-                        img = create_img(name,color)
-                        saved_img=f"./tmp_resources/{name}.png"
-                        img.save(saved_img)
-                        nodes_by_name['imports'][mod][name] = Custom(name, saved_img)
+                    nodes_by_name['imports'][mod]['MODNODE'] = make_node_with_img(mod)
+                    with Cluster("Methods"):
+                        for name in imp_dict[mod]:
+                            color = encode_text_as_RGB_simple(name)
+                            img = create_img(name,color)
+                            saved_img=f"./tmp_resources/{name}.png"
+                            img.save(saved_img)
+                            nodes_by_name['imports'][mod][name] = Custom("", saved_img)
 
         with Cluster(f"{filename_in} Functions"):
             if 'native' not in nodes_by_name.keys():
@@ -267,6 +294,7 @@ def main():
                 nodes_by_name['classes'] = dict()
             if 'imports' not in nodes_by_name.keys():
                 nodes_by_name['imports'] = dict()
+            nodes_by_name['native']['MODNODE'] = make_node_with_img(f"{filename_in} Functions")
             for mod in func_dict:
                 color = encode_text_as_RGB_simple(mod)
                 if MOD_LABEL_ON:
@@ -296,19 +324,21 @@ def main():
             for mod in class_dict:
                 for inner in class_dict[mod]['definitions']:
                     for inner_layer_two in class_dict[mod]['definitions'][inner]['native']:
-                        if inner_layer_two in nodes_by_name['native'] and inner_layer_two in nodes_by_name['classes:'][mod]['definitions'][inner]['native']:
+                        if inner_layer_two in nodes_by_name['native'] and inner_layer_two in nodes_by_name['classes'][mod]['definitions'][inner]['native']:
                             this_label=f"{mod}"
                             if EDGE_LABELS_ON:
                                 nodes_by_name['native'][inner_layer_two]['MODNODE'] >> Edge(color=encode_text_as_RGB_simple(this_label), label=this_label,penwidth="5",style="dashed") >> nodes_by_name['classes'][mod]['definitions'][inner]['native'][inner_layer_two]
                             if not EDGE_LABELS_ON:
                                 nodes_by_name['native'][inner_layer_two]['MODNODE'] >> Edge(color=encode_text_as_RGB_simple(this_label), penwidth="5") >> nodes_by_name['classes'][mod]['definitions'][inner]['native'][inner_layer_two]
                     for inner_layer_two in class_dict[mod]['definitions'][inner]['imports']:
-                        if inner_layer_two in nodes_by_name['imports'] and inner_layer_two in nodes_by_name['classes:'][mod]['definitions'][inner]['imports']:
-                            this_label=f"used by {mod}"
-                            if EDGE_LABELS_ON:
-                                nodes_by_name['imports'][inner_layer_two]['MODNODE'] >> Edge(color=encode_text_as_RGB_simple(this_label), label=this_label,penwidth="5",style="dashed") >> nodes_by_name['classes'][mod]['definitions'][inner]['imports'][inner_layer_two]
-                            if not EDGE_LABELS_ON:
-                                nodes_by_name['imports'][inner_layer_two]['MODNODE'] >> Edge(color=encode_text_as_RGB_simple(this_label), penwidth="5") >> nodes_by_name['classes'][mod]['definitions'][inner]['imports'][inner_layer_two]
+                        for import_module in nodes_by_name['imports']:
+                            if import_module != 'MODNODE':
+                                if inner_layer_two in nodes_by_name['imports'][import_module] and inner_layer_two in nodes_by_name['classes'][mod]['definitions'][inner]['imports']:
+                                    this_label=f"used by {mod}"
+                                    if EDGE_LABELS_ON:
+                                        nodes_by_name['imports'][import_module][inner_layer_two] >> Edge(color=encode_text_as_RGB_simple(this_label), label=this_label,penwidth="5",style="dotted") >> nodes_by_name['classes'][mod]['definitions'][inner]['imports'][inner_layer_two]
+                                    if not EDGE_LABELS_ON:
+                                        nodes_by_name['imports'][import_module][inner_layer_two] >> Edge(color=encode_text_as_RGB_simple(this_label), penwidth="5",style="dotted") >> nodes_by_name['classes'][mod]['definitions'][inner]['imports'][inner_layer_two]
             for mod in func_dict:
                 for inner in func_dict[mod]['native']:
                     if inner in nodes_by_name['native'] and inner in nodes_by_name['native'][mod]:
